@@ -1,0 +1,26 @@
+---
+#/etc/ansible/roles/example/ubuntu/tasks/main.yml
+- name: Clean up amazon's broken apt reposotory.
+  synchronize:
+   src: /etc/apt/sources.list
+   dest: /etc/apt/sources.list
+
+- name: Add docker key
+  shell: sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+- name: apt update
+  apt: 
+   update_cache: yes 
+   upgrade: yes
+
+- name:  install python-pip
+  apt: name=python-pip state=present
+
+- name:  install awscli
+  apt: name=awscli state=present
+
+- name:  install boto3
+  command: "/usr/bin/pip install boto3"
+
+- name:  install botocore
+  command: "/usr/bin/pip install botocore"

@@ -1,0 +1,42 @@
+---
+#dock-web
+
+#- name:
+#  command: sudo docker run --name docker-nginx -p 80:80 -d -v /data/www/html:/usr/share/nginx/html nginx
+
+- name: make /usr/lib/systemd/system/dock-nginx.service
+  copy:
+   content: ""
+   dest: /lib/systemd/system/dock-nginx.service
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/dock-nginx.service
+  blockinfile: 
+   dest: /lib/systemd/system/dock-nginx.service
+   block: |
+    [Unit]
+    Description=dock-nginx
+    After=docker.service
+    Requires=docker.service
+
+    [Service]
+    Restart=always
+    StartLimitInterval=20
+    StartLimitBurst=5
+    TimeoutStartSec=0
+    ExecStartPre=-/usr/bin/docker kill docker-nginx
+    ExecStartPre=-/usr/bin/docker rm docker-nginx
+    ExecStart=/usr/bin/docker run --name docker-nginx -p 80:80 -d -v /data/www/html:/usr/share/nginx/html nginx
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: 
+  systemd:
+   name: dock-nginx.service
+   daemon_reload: yes
+   state: started
+   enabled: true
+   masked: no

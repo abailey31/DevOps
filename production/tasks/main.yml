@@ -1,0 +1,187 @@
+---
+#/etc/ansible/roles/example/production/tasks
+- name: make copy aws config
+  synchronize:
+   src: /home/ghost/.aws/
+   dest: /home/ubuntu/.aws/
+
+- name: make copy aws config
+  synchronize:
+   src: /home/ghost/.aws/
+   dest: /root/.aws/
+
+- name: create mount pount
+  file: 
+   path: /data 
+   state: directory
+
+- pause: seconds=3
+
+- name: mount ecs file
+  mount:
+   path: /data
+   src: /dev/xvdh
+   state: mounted
+   fstype: ext4
+
+- name: make website dir
+  file: 
+   path: /data/www 
+   state: directory
+
+- name: make /data/websitebackup/backup.sh
+  copy:
+   content: ""
+   dest: /data/websitebackup/backup.sh
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /data/websitebackup/backup.sh
+  blockinfile: 
+   dest: /data/websitebackup/backup.sh
+   block: |
+    #!/bin/bash
+    DAYMONTH=`date "+%d"`
+    /bin/tar -czvf /data/websitebackup/backup-$(date +\%H:\%M-\%d-\%m-\%y).tgz /data/www/html &>/dev/null
+   backup: no
+
+- name: make /usr/lib/systemd/system/backup.service
+  copy:
+   content: ""
+   dest: /lib/systemd/system/backup.service
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/backup.service
+  blockinfile: 
+   dest: /lib/systemd/system/backup.service
+   block: |
+    [Unit]
+    Description=Backup of my website
+
+    [Service]
+    Type=simple
+    ExecStart=/bin/bash /data/websitebackup/backup.sh
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: make /usr/lib/systemd/system/backup.timer
+  copy:
+   content: ""
+   dest: /lib/systemd/system/backup.timer
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/backup.timer
+  blockinfile: 
+   dest: /lib/systemd/system/backup.timer
+   block: |
+    [Unit]
+    Description=Execute backup every day
+
+    [Timer]
+    OnCalendar=*-*-* 00:00:00
+    Unit=backup.service
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: 
+  systemd:
+   name: backup.service
+   daemon_reload: yes
+   state: stopped
+   enabled: true
+   masked: no
+
+- name: 
+  systemd:
+   name: backup.timer
+   daemon_reload: yes
+   state: started
+   enabled: true
+   masked: no
+
+#configure local cleanup of backup data.
+- name: make /data/websitebackup/cleanup.sh
+  copy:
+   content: ""
+   dest: /data/websitebackup/cleanup.sh
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /data/websitebackup/cleanup.sh
+  blockinfile: 
+   dest: /data/websitebackup/cleanup.sh
+   block: |
+    #!/bin/bash
+    source /home/ubuntu/.profile
+    /bin/rm -f /data/websitebackup/*.tgz
+   backup: no
+
+- name: make /usr/lib/systemd/system/cleanup.service
+  copy:
+   content: ""
+   dest: /lib/systemd/system/cleanup.service
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/cleanup.service
+  blockinfile: 
+   dest: /lib/systemd/system/cleanup.service
+   block: |
+    [Unit]
+    Description=cleanup /data/websitebackup/ of .tgz files
+
+    [Service]
+    Type=simple
+    ExecStart=/bin/bash /data/websitebackup/cleanup.sh
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: make /usr/lib/systemd/system/cleanup.timer
+  copy:
+   content: ""
+   dest: /lib/systemd/system/cleanup.timer
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/cleanup.timer
+  blockinfile: 
+   dest: /lib/systemd/system/cleanup.timer
+   block: |
+    [Unit]
+    Description=cleanup
+
+    [Timer]
+    OnCalendar=*-*-* 01:00:00
+    Unit=cleanup.timer
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: enable cleanup service
+  systemd:
+   name: cleanup.service
+   daemon_reload: yes
+   state: stopped
+   enabled: true
+   masked: no
+
+- name: enable cleanup timer
+  systemd:
+   name: cleanup.timer
+   daemon_reload: yes
+   state: started
+   enabled: true
+   masked: no

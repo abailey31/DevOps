@@ -1,0 +1,77 @@
+---
+#/etc/ansible/roles/example/webservers/tasks/main.yml
+
+- name:  install nginx
+  apt: name=nginx state=present
+
+- name: create mount pount
+  file: 
+   path: /data 
+   state: directory
+
+- pause: seconds=10
+
+- name: mount ecs file
+  mount:
+   path: /data
+   src: /dev/xvdh
+   state: mounted
+   fstype: ext4
+
+- name: make website dir
+  file: 
+   path: /data/www 
+   state: directory
+
+- name: make /data/www/index.html
+  copy:
+   content: "coming soon"
+   dest: /data/www/index.html
+   force: no
+
+- name: make /etc/nginx/sites-available/test.html
+  copy:
+   content: ""
+   dest: /etc/nginx/sites-available/test.html
+   force: no
+
+- pause: seconds=5
+
+- name: configure website
+  blockinfile: 
+   dest: /etc/nginx/sites-available/test.html
+   block: |
+    server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+     location /index.html {
+     return 200 "Feed me a stray cat";
+      }
+     }
+  notify: start nginx
+
+- name: create symlink
+  file:
+   src: "/etc/nginx/sites-available/test.html"
+   dest: "/etc/nginx/sites-enabled/test.html"
+   state: link
+
+- name: remove default
+  file:
+   path: "/etc/nginx/sites-available/default"
+   state: absent
+
+- name: remove default
+  file:
+   path: "/etc/nginx/sites-enabled/default"
+   state: absent
+
+- name: make website backup dir
+  file: 
+   path: /data/websitebackup
+   state: directory
+
+- name: make website restore-image dir
+  file: 
+   path: /data/restore-image
+   state: directory

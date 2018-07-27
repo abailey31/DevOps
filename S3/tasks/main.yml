@@ -1,0 +1,71 @@
+---
+#/etc/ansible/roles/example/S3/tasks
+- name: make /data/websitebackup/tos3.sh
+  copy:
+   content: ""
+   dest: /data/websitebackup/tos3.sh
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /data/websitebackup/tos3.sh
+  blockinfile: 
+   dest: /data/websitebackup/tos3.sh
+   block: |
+    #!/bin/bash
+    source /home/ubuntu/.profile
+    DAYMONTH=`date "+%d"`
+    /usr/bin/aws s3 cp /data/websitebackup/ s3://ghost-terraform-test/ --recursive --acl bucket-owner-full-control --exclude "*" --include "*.tgz" --include "*.html" --profile tos3
+   backup: no
+
+- name: make /usr/lib/systemd/system/tos3.service
+  copy:
+   content: ""
+   dest: /lib/systemd/system/tos3.service
+   owner: ubuntu
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/tos3.service
+  blockinfile: 
+   dest: /lib/systemd/system/tos3.service
+   block: |
+    [Unit]
+    Description=Send backup to amazon s3.
+
+    [Service]
+    Type=simple
+    ExecStart=/bin/bash /data/websitebackup/tos3.sh
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: make /usr/lib/systemd/system/tos3.timer
+  copy:
+   content: ""
+   dest: /lib/systemd/system/tos3.timer
+   mode: 01777
+   force: no
+
+- name: update /usr/lib/systemd/system/tos3.timer
+  blockinfile: 
+   dest: /lib/systemd/system/tos3.timer
+   block: |
+    [Unit]
+    Description=Send to S3 every hour on the nines
+
+    [Timer]
+    OnCalendar=*-*-* 00:09:00
+    Unit=tos3.service
+
+    [Install]
+    WantedBy=multi-user.target
+   backup: no
+
+- name: enable tos3 timer
+  systemd:
+   name: tos3.timer
+   state: started
+   enabled: true
+   masked: no
