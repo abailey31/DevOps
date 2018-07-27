@@ -1,0 +1,21 @@
+---
+- name: Everything
+  hosts: 18.210.48.126
+  become: true 
+  become_user: root
+  become_method: sudo
+  remote_user: ubuntu
+  roles:
+   - common
+   - ubuntu
+#   - webservers
+   - production
+   - S3
+   - docker
+   - dock-web
+
+
+
+
+
+
