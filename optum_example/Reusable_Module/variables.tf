@@ -26,7 +26,7 @@ variable "node_pool_name" {
 
 variable "node_pool_node_count" {
   type        = number
-  description = "(Optional) The number of nodes which should exist in this Node Pool. Defaults to 1."
+  description = "(Optional) The number of nodes which should exist in this Node Pool. Defaults based on environment."
   default     = 1
 }
 

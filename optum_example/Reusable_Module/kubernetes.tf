@@ -10,9 +10,15 @@ resource "azurerm_kubernetes_cluster" "example" {
   dns_prefix          = var.cluster_dns_prefix
 
   default_node_pool {
-    name       = var.node_pool_name
-    node_count = var.node_pool_node_count
-    vm_size    = var.node_pool_vm_size
+    name = var.node_pool_name
+    node_count = (
+      var.node_pool_node_count != null ? var.node_pool_node_count :
+      var.env_tag == "Production" ? 3 :
+      var.env_tag == "Staging" ? 2 :
+      var.env_tag == "Development" ? 1 :
+      1 #Default if no match.
+    )
+    vm_size = var.node_pool_vm_size
   }
 
   identity {
